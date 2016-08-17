@@ -2,17 +2,21 @@ from imaplib import *
 from emailBotInterface import *
 import ssl
 import re
+from pprint import pprint
+from  Models import *
+
 # from oauth2client import clientsecrets as clsr
 # from . import googleOauth2 as go
 
 
 pattern = "\w+@\w+\.(com|net|org)"
+pat = "(\(\w+\))+"
 regObj = re.compile(pattern)
 
 
 class MailBot(BotInterface):
 	"""docstring for MailBot"""
-	folder = 'INBOX'
+	folder = 'MailBot'
 	port = 993
 
 	email_list = []
@@ -22,11 +26,14 @@ class MailBot(BotInterface):
 	imap_client_list = []
 
 	login_flag = False
+	done = False
 
 
-	def __init__(self, email_object, spam_object):
-		self.email_list.append(email_object)
-		self.spam_list.append(spam_object)
+	def __init__(self, email_object = None, spam_object = None):
+		if(email_object != None):
+			self.email_list.append(email_object)
+		if(spam_object != None):
+			self.spam_list.append(spam_object)
 
 	def __str__(self):
 		return self.__doc__
@@ -45,9 +52,12 @@ class MailBot(BotInterface):
 
 
 	def __parse(self, email_list = None):
+		"""parse email to assign the right
+			server
+		"""
 		index = 0
 		email_list = self.email_list
-
+		
 		for email in email_list:	
 			email = email.get_email_addr()			
 			loc = email.find('@') + 1
@@ -64,10 +74,12 @@ class MailBot(BotInterface):
 				server_addr = None
 
 			self.imap_server_dict[index] = server_addr
-			print(self.imap_server_dict)
 			index += 1
 
 	def __spawn_imap_client(self):
+		"""spawns an IMAP4_SSL object for
+			each supplied user email
+		"""
 		self.__parse()
 
 		for key,host in self.imap_server_dict.items():			
@@ -78,11 +90,13 @@ class MailBot(BotInterface):
 				print("connected...")				
 			except Exception as e:
 				self.imap_client_list.append(None)
-				print(e)
+				#print(e)
 				print("Unable to connect to %s" %host)				
 
 
 	def login(self, email_object = None, clients = None):
+		"""Logs into server
+		"""
 		self.__spawn_imap_client();
 
 		index = 0
@@ -100,21 +114,30 @@ class MailBot(BotInterface):
 				index += 1
 
 
-	def work(self, email_object = None, spam_object = None, clients = None):
+	def work(self, email_object = None, spam_object = None, clients = None, label = None):
+		"""Deletes spam mails
+		"""
 		index = 0
+		label = label if(label != None) else self.folder
 		email_object = self.email_list; spam_object = self.spam_list; clients = self.imap_client_list
 		
 		if(len(email_object) == 1  and len(spam_object) == 1):	
-			try:
-				# print(spam_object[index].get_id())					
-				clients[index].select(mailbox = self.folder, readonly = False)
-				junk,[IDs] = clients[index].search(None, '(FROM "flag")'.replace('flag',spam_object[index].get_id()))
-				IDs = IDs.decode('utf-8')
-				IDs = ','.join(IDs.split(' '))
-				clients[index].store(IDs,'+FLAGS','(\Deleted)')
-				clients[index].expunge()
 			
-			except IMAP4.error:				
+			try:				
+				clients[index].select(mailbox = label, readonly = False)					
+				junk,[IDs] = clients[index].search(None, '(FROM "flag")'.replace('flag',spam.get_id()))
+				# print(type(IDs))
+				IDs = IDs.decode('utf-8')
+
+				if(IDs != '' and IDs != ' '):
+					IDs = ','.join(IDs.split(' '))
+					IDs = IDs.strip(',')					
+					
+					print((IDs))
+					clients[index].store(IDs,'+FLAGS','(\Deleted)')
+					clients[index].expunge()
+				self.done = True
+			except IMAP4.error as e:				
 				print("Operation failed!")					
 
 			except Exception as e:
@@ -123,24 +146,154 @@ class MailBot(BotInterface):
 			for spam in spam_object:
 				for email in email_object:
 					try:						
-						junk, data = clients[index].select(mailbox = self.folder, readonly = False)
+						junk, data = clients[index].select(mailbox = label, readonly = False)						
 						junk,[IDs] = clients[index].search(None, '(FROM "flag")'.replace('flag',spam.get_id()))
+						
+						# print(type(IDs))
 						IDs = IDs.decode('utf-8')
-						IDs = ','.join(IDs.split(' '))
-						clients[index].store(IDs,'+FLAGS','(\Deleted)')
-						clients[index].expunge()		
+
+						if(IDs != '' and IDs != ' '):
+							IDs = ','.join(IDs.split(' '))						
+							IDs = IDs.strip(',')
+						
+							clients[index].store(IDs,'+FLAGS','(\Deleted)')
+							clients[index].expunge()		
 				
-					except IMAP4.error:				
-						print("Operation failed!")					
+					except IMAP4.error as e:				
+						print(e)#"Operation failed!")					
 
 					except Exception as e:
 						print(e)
 					finally:
 						index += 1
 				index = 0
+			self.done = True
+
+	def empty_spam(self):
+		"""Empties folders in mail_box
+		"""
+		#Not working  for yahoo
+		email_object = self.email_list
+		clients = self.imap_client_list
+		mail_box = ['Unsubscribe',"Bulk Mail",'Spam','Junk']
+		index = 0
+		for email in email_object:
+			for box in mail_box:
+				try:
+
+					clients[index].select(mailbox = box, readonly = False)
+					typ, IDs = clients[index].search(None,'ALL')
+					IDs = IDs[0]
+
+					# print(type(IDs))		
+					IDs = IDs.decode('utf-8')
+					if(IDs != '' and IDs != ' '):
+						IDs = ','.join(IDs.split(' '))
+						IDs = IDs.strip(',')
+
+						clients[index].store(IDs,'+FLAGS','(\Deleted)')
+						clients[index].expunge()		
+
+				except IMAP4.error as e:				
+					print(e)#"Operation failed!")					
+
+				except Exception as e:
+					print(e)		
+			index += 1
+
+
+	def add_folder(self, folder = None):
+		"""inserts a folder 
+		"""
+		folder = folder if(folder != None) else "MailBot"
+		flag = True
+		clients  = self.imap_client_list
+		for client in clients:
+			trash, data = client.list()
+			for data in data:	
+				if(folder in data.decode("utf-8") ):
+					flag = False; break;
+		
+			if(flag):
+				client.create(folder)
+					
+#does not work
+	def parse_mailbot(self, folder = None):
+		"""parses emails in folder to retrieve
+			email addresses
+		"""
+		clients = self.imap_client_list
+		folder = folder if(folder != None) else "MailBot"
+		patterns = [
+					"(\w+@\w+)\.(net|com|org|tv)",
+					"(\w+\-\w+@\w+)\.(net|com|org|tv)",
+					"(\w+@\w+\.\w+)\.(net|com|org|tv)",
+					"(\w+@\w+\-\w+)\.(net|com|org|tv)"
+					]
+		obj = []
+		for client in clients:			
+			try:
+				client.select(folder, False)				
+				trash, IDs = client.search(None, 'NOT SEEN')	
+				trash, ID = client.search(None, 'SEEN')
+				IDs = IDs + ID
+
+				IDs = IDs[0] + IDs[1]
+				print(IDs)
+
+				# print(type(IDs))	
+				IDs = IDs.decode('utf-8')
+				IDs = ','.join(IDs.split(' '))
+				IDs = IDs.strip(',')
+
+				for ID in IDs.split(','):		
+					trash, data = client.fetch(ID, '(BODY.PEEK[HEADER])')
+					data = data[0]
+					# pprint(data)
+					for data in data:						
+						data = data.decode("utf-8")
+						for pat in patterns:
+							reg = re.compile(pat)
+							if(len(reg.findall(data,2)) != 0):
+								obj.append(reg.findall(data,2))
+						
+
+			except Exception as e:
+				print(e)
+		return obj		
+				
+
+ # SENTBEFORE <date>
+ #         Messages whose [RFC-2822] Date: header (disregarding time and
+ #         timezone) is earlier than the specified date.
+
+	def parse_mailbot_helper(self, objs):
+		"""processes the list of emails returned by 
+			parse_mailbot()
+		"""
+		parsed = []		
+		for obj in objs:
+			for ob in obj:
+				temp = '.'.join(ob)				
+				parsed.append(temp)		
+		# print(parsed)	
+		parsed = list(set(parsed))
+		return parsed
+
+	def add_parse_spam(self, parsed):
+		"""adds the parsed email data from
+			parse_mailbot_helper into 
+			self.spam_list
+		"""
+		for email in self.email_list:
+			for spam in parsed:									
+				if(email.get_email_addr() != spam):
+					self.spam_list.append(Spam(spam))
+
 
 	def clean_up(self):	
-		for client in imap_client_list:
+		"""Logs out the bot"""
+		for client in self.imap_client_list:
 			if(client != None):
 				client.logout()
 

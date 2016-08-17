@@ -26,8 +26,8 @@ class Email(object):
 class Spam(object):
 	"""Spam class"""
 	_id = None
-
-	def __init__(self,id):
+	
+	def __init__(self, id):
 		self._id = id
 
 	def set_id(self, id):
@@ -35,6 +35,7 @@ class Spam(object):
 
 	def get_id(self):
 		return self._id
+
 
 	def __str__(self):
 		return ("Spam class")
