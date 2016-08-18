@@ -1,4 +1,4 @@
-#!user/bin/env python
+#!/user/bin/env python3
 from emailBot import *
 from Models  import *
 import Models
