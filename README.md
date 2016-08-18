@@ -4,7 +4,7 @@ To use the program:
 <br>
 Usage:
  
- --- You will need python 3.x
+ *** You will need python 3.x
   <br>
  --- Download emailBot folder zip
   <br>
