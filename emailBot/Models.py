@@ -1,5 +1,5 @@
 import getpass
-
+import pickle
 class Email(object):
 	"""Emmail class """
 	_email_addr = None
@@ -41,6 +41,8 @@ class Spam(object):
 		return ("Spam class")
 
 
+def save_instance(obj, file):
+	pickle.dump(obj,file)
 
-
-
+def load_instance(file):
+	return pickle.load(file)

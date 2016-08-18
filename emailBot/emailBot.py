@@ -4,26 +4,21 @@ import ssl
 import re
 from pprint import pprint
 from  Models import *
+from email.utils import parseaddr
 
 # from oauth2client import clientsecrets as clsr
 # from . import googleOauth2 as go
-
-
-pattern = "\w+@\w+\.(com|net|org)"
-pat = "(\(\w+\))+"
-regObj = re.compile(pattern)
-
 
 class MailBot(BotInterface):
 	"""docstring for MailBot"""
 	folder = 'MailBot'
 	port = 993
 
-	email_list = []
+	__email_list = []
 	spam_list = []
 
-	imap_server_dict = {}
-	imap_client_list = []
+	__imap_server_dict = {}
+	__imap_client_list = []
 
 	login_flag = False
 	done = False
@@ -31,7 +26,7 @@ class MailBot(BotInterface):
 
 	def __init__(self, email_object = None, spam_object = None):
 		if(email_object != None):
-			self.email_list.append(email_object)
+			self.__email_list.append(email_object)
 		if(spam_object != None):
 			self.spam_list.append(spam_object)
 
@@ -39,10 +34,10 @@ class MailBot(BotInterface):
 		return self.__doc__
 
 	def add_email(self,email_object):
-		self.email_list.append(email_object)
+		self.__email_list.append(email_object)
 
 	def remove_email(self, email_object):
-		self.email_list.pop(self.email_list.index(email_object))
+		self.__email_list.pop(self.__email_list.index(email_object))
 
 	def add_spam(self,spam_object):
 		self.spam_list.append(spam_object)
@@ -56,7 +51,7 @@ class MailBot(BotInterface):
 			server
 		"""
 		index = 0
-		email_list = self.email_list
+		email_list = self.__email_list
 		
 		for email in email_list:	
 			email = email.get_email_addr()			
@@ -73,7 +68,7 @@ class MailBot(BotInterface):
 			else:
 				server_addr = None
 
-			self.imap_server_dict[index] = server_addr
+			self.__imap_server_dict[index] = server_addr
 			index += 1
 
 	def __spawn_imap_client(self):
@@ -82,14 +77,14 @@ class MailBot(BotInterface):
 		"""
 		self.__parse()
 
-		for key,host in self.imap_server_dict.items():			
+		for key,host in self.__imap_server_dict.items():			
 			try:				
 				print("connecting....")
 				print("to host at: %s"%host)				
-				self.imap_client_list.append(IMAP4_SSL(host,self.port))
+				self.__imap_client_list.append(IMAP4_SSL(host,self.port))
 				print("connected...")				
 			except Exception as e:
-				self.imap_client_list.append(None)
+				self.__imap_client_list.append(None)
 				#print(e)
 				print("Unable to connect to %s" %host)				
 
@@ -100,7 +95,7 @@ class MailBot(BotInterface):
 		self.__spawn_imap_client();
 
 		index = 0
-		email_object = self.email_list; clients = self.imap_client_list
+		email_object = self.__email_list; clients = self.__imap_client_list
 
 		if(len(email_object) == 1):				
 			if(clients[index] != None):
@@ -111,7 +106,7 @@ class MailBot(BotInterface):
 				if(clients[index] != None):
 					clients[index].login(email.get_email_addr(), email.get_pass())
 					self.login_flag = True
-				index += 1
+				index += 1		
 
 
 	def work(self, email_object = None, spam_object = None, clients = None, label = None):
@@ -119,7 +114,7 @@ class MailBot(BotInterface):
 		"""
 		index = 0
 		label = label if(label != None) else self.folder
-		email_object = self.email_list; spam_object = self.spam_list; clients = self.imap_client_list
+		email_object = self.__email_list; spam_object = self.spam_list; clients = self.__imap_client_list
 		
 		if(len(email_object) == 1  and len(spam_object) == 1):	
 			
@@ -133,15 +128,15 @@ class MailBot(BotInterface):
 					IDs = ','.join(IDs.split(' '))
 					IDs = IDs.strip(',')					
 					
-					print((IDs))
+					# print((IDs))
 					clients[index].store(IDs,'+FLAGS','(\Deleted)')
 					clients[index].expunge()
 				self.done = True
 			except IMAP4.error as e:				
-				print("Operation failed!")					
+				print("from work(): %s" % e)					
 
 			except Exception as e:
-				print(e)
+				print("from work(): %s" % e)
 		else:
 			for spam in spam_object:
 				for email in email_object:
@@ -160,10 +155,10 @@ class MailBot(BotInterface):
 							clients[index].expunge()		
 				
 					except IMAP4.error as e:				
-						print(e)#"Operation failed!")					
+						print("from work(): %s" % e)					
 
 					except Exception as e:
-						print(e)
+						print("from work(): %s" % e)
 					finally:
 						index += 1
 				index = 0
@@ -173,8 +168,8 @@ class MailBot(BotInterface):
 		"""Empties folders in mail_box
 		"""
 		#Not working  for yahoo
-		email_object = self.email_list
-		clients = self.imap_client_list
+		email_object = self.__email_list
+		clients = self.__imap_client_list
 		mail_box = ['Unsubscribe',"Bulk Mail",'Spam','Junk']
 		index = 0
 		for email in email_object:
@@ -195,10 +190,10 @@ class MailBot(BotInterface):
 						clients[index].expunge()		
 
 				except IMAP4.error as e:				
-					print(e)#"Operation failed!")					
+					print("from empty_spam(): %s"%e)#"Operation failed!")					
 
 				except Exception as e:
-					print(e)		
+					print("from empty_spam(): %s" %e)		
 			index += 1
 
 
@@ -207,7 +202,7 @@ class MailBot(BotInterface):
 		"""
 		folder = folder if(folder != None) else "MailBot"
 		flag = True
-		clients  = self.imap_client_list
+		clients  = self.__imap_client_list
 		for client in clients:
 			trash, data = client.list()
 			for data in data:	
@@ -222,8 +217,8 @@ class MailBot(BotInterface):
 		"""parses emails in folder to retrieve
 			email addresses
 		"""
-		clients = self.imap_client_list
-		folder = folder if(folder != None) else "MailBot"
+		clients = self.__imap_client_list
+		folder = folder if(folder != None) else self.folder
 		patterns = [
 					"(\w+@\w+)\.(net|com|org|tv)",
 					"(\w+\-\w+@\w+)\.(net|com|org|tv)",
@@ -239,7 +234,7 @@ class MailBot(BotInterface):
 				IDs = IDs + ID
 
 				IDs = IDs[0] + IDs[1]
-				print(IDs)
+				# print(IDs)
 
 				# print(type(IDs))	
 				IDs = IDs.decode('utf-8')
@@ -252,6 +247,8 @@ class MailBot(BotInterface):
 					# pprint(data)
 					for data in data:						
 						data = data.decode("utf-8")
+						print(parseaddr(data))
+						pprint(data)
 						for pat in patterns:
 							reg = re.compile(pat)
 							if(len(reg.findall(data,2)) != 0):
@@ -259,7 +256,7 @@ class MailBot(BotInterface):
 						
 
 			except Exception as e:
-				print(e)
+				print("from parse_mailbot(): %s" % e)
 		return obj		
 				
 
@@ -275,9 +272,9 @@ class MailBot(BotInterface):
 		for obj in objs:
 			for ob in obj:
 				temp = '.'.join(ob)				
-				parsed.append(temp)		
-		# print(parsed)	
+				parsed.append(temp)					
 		parsed = list(set(parsed))
+		# print(parsed)
 		return parsed
 
 	def add_parse_spam(self, parsed):
@@ -285,7 +282,7 @@ class MailBot(BotInterface):
 			parse_mailbot_helper into 
 			self.spam_list
 		"""
-		for email in self.email_list:
+		for email in self.__email_list:
 			for spam in parsed:									
 				if(email.get_email_addr() != spam):
 					self.spam_list.append(Spam(spam))
@@ -293,7 +290,7 @@ class MailBot(BotInterface):
 
 	def clean_up(self):	
 		"""Logs out the bot"""
-		for client in self.imap_client_list:
+		for client in self.__imap_client_list:
 			if(client != None):
 				client.logout()
 
