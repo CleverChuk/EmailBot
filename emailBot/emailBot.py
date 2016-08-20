@@ -5,6 +5,7 @@ import re
 from pprint import pprint
 from  Models import *
 from email.utils import parseaddr
+import os
 
 # from oauth2client import clientsecrets as clsr
 # from . import googleOauth2 as go
@@ -32,6 +33,12 @@ class MailBot(BotInterface):
 
 	def __str__(self):
 		return self.__doc__
+
+	def set_email_list(self, List):
+		self.__email_list = List
+
+	def get_email_list(self):
+		return self.__email_list
 
 	def add_email(self,email_object):
 		self.__email_list.append(email_object)
@@ -76,7 +83,7 @@ class MailBot(BotInterface):
 			each supplied user email
 		"""
 		self.__parse()
-
+		self.__imap_client_list.clear()
 		for key,host in self.__imap_server_dict.items():			
 			try:				
 				print("connecting....")
@@ -106,7 +113,7 @@ class MailBot(BotInterface):
 				if(clients[index] != None):
 					clients[index].login(email.get_email_addr(), email.get_pass())
 					self.login_flag = True
-				index += 1		
+				index += 1
 
 
 	def work(self, email_object = None, spam_object = None, clients = None, label = None):
@@ -170,16 +177,18 @@ class MailBot(BotInterface):
 		#Not working  for yahoo
 		email_object = self.__email_list
 		clients = self.__imap_client_list
-		mail_box = ['Unsubscribe',"Bulk Mail",'Spam','Junk']
+		mail_box = ['Unsubscribe','Bulk Mail','Spam','Junk']
 		index = 0
 		for email in email_object:
 			for box in mail_box:
 				try:
 
 					clients[index].select(mailbox = box, readonly = False)
-					typ, IDs = clients[index].search(None,'ALL')
-					IDs = IDs[0]
+					trash, IDs = client.search(None, 'NOT SEEN')	
+					trash, ID = client.search(None, 'SEEN')
+					IDs = IDs + ID
 
+					IDs = IDs[0] + IDs[1]
 					# print(type(IDs))		
 					IDs = IDs.decode('utf-8')
 					if(IDs != '' and IDs != ' '):
@@ -204,15 +213,18 @@ class MailBot(BotInterface):
 		flag = True
 		clients  = self.__imap_client_list
 		for client in clients:
-			trash, data = client.list()
-			for data in data:	
-				if(folder in data.decode("utf-8") ):
-					flag = False; break;
-		
-			if(flag):
-				client.create(folder)
-					
-#does not work
+			try:
+				trash, data = client.list()
+				for data in data:	
+					if(folder in data.decode("utf-8") ):
+						flag = False; break;
+			
+				if(flag):
+					client.create(folder)
+			except:
+				pass
+	
+	# TODO: implement parse by sender name				
 	def parse_mailbot(self, folder = None):
 		"""parses emails in folder to retrieve
 			email addresses
@@ -223,7 +235,9 @@ class MailBot(BotInterface):
 					"(\w+@\w+)\.(net|com|org|tv)",
 					"(\w+\-\w+@\w+)\.(net|com|org|tv)",
 					"(\w+@\w+\.\w+)\.(net|com|org|tv)",
-					"(\w+@\w+\-\w+)\.(net|com|org|tv)"
+					"(\w+@\w+\-\w+)\.(net|com|org|tv)",
+					"(\w+\-\w+@\w+.\w+)\.(net|com|org|tv)",
+					"(\w+\+\w+@\w+)\.(net|com|org|tv)"
 					]
 		obj = []
 		for client in clients:			
@@ -244,11 +258,12 @@ class MailBot(BotInterface):
 				for ID in IDs.split(','):		
 					trash, data = client.fetch(ID, '(BODY.PEEK[HEADER])')
 					data = data[0]
-					# pprint(data)
+					pprint(data)
 					for data in data:						
 						data = data.decode("utf-8")
-						print(parseaddr(data))
-						pprint(data)
+						# if(isinstance(data,tuple)):
+						# print(parseaddr(data))
+							pprint(data[1])
 						for pat in patterns:
 							reg = re.compile(pat)
 							if(len(reg.findall(data,2)) != 0):
@@ -256,7 +271,7 @@ class MailBot(BotInterface):
 						
 
 			except Exception as e:
-				print("from parse_mailbot(): %s" % e)
+				pass#rint("from parse_mailbot(): %s" % e)
 		return obj		
 				
 
@@ -285,12 +300,27 @@ class MailBot(BotInterface):
 		for email in self.__email_list:
 			for spam in parsed:									
 				if(email.get_email_addr() != spam):
-					self.spam_list.append(Spam(spam))
+					if(self.__in_list(self.spam_list,spam)):
+						self.spam_list.append(Spam(spam))
+
+	def __in_list(self,cont, email):
+		"""prevents duplicate
+			spam email
+		"""
+		for item in cont:
+			if item.get_id() == email:
+				return False
+			else:
+				return True
 
 
 	def clean_up(self):	
 		"""Logs out the bot"""
-		for client in self.__imap_client_list:
+		for client in self.__imap_client_list:			
 			if(client != None):
+				try:
+					client.close()
+				except:
+					pass
 				client.logout()
 

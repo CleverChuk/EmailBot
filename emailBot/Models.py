@@ -38,7 +38,7 @@ class Spam(object):
 
 
 	def __str__(self):
-		return ("Spam class")
+		return ("Spam Class, id:"+self._id)
 
 
 def save_instance(obj, file):
@@ -46,3 +46,11 @@ def save_instance(obj, file):
 
 def load_instance(file):
 	return pickle.load(file)
+
+def print_list(cont):
+	"""just for diagnosis"""
+	for item in cont:
+		if(item is Email):
+			print(item.get_email_addr())
+		else:
+			print(item.get_id())
