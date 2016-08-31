@@ -258,12 +258,12 @@ class MailBot(BotInterface):
 				for ID in IDs.split(','):		
 					trash, data = client.fetch(ID, '(BODY.PEEK[HEADER])')
 					data = data[0]
-					pprint(data)
+					# pprint(data)
 					for data in data:						
 						data = data.decode("utf-8")
 						# if(isinstance(data,tuple)):
 						# print(parseaddr(data))
-							pprint(data[1])
+							# pprint(data[1])
 						for pat in patterns:
 							reg = re.compile(pat)
 							if(len(reg.findall(data,2)) != 0):
