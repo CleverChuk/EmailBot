@@ -195,8 +195,8 @@ class MailBot(BotInterface):
 						IDs = ','.join(IDs.split(' '))
 						IDs = IDs.strip(',')
 
-						clients[index].store(IDs,'+FLAGS','(\Deleted)')
-						clients[index].expunge()		
+						client.store(IDs,'+FLAGS','(\Deleted)')
+						client.expunge()		
 
 				except IMAP4.error as e:				
 					print("from empty_spam(): %s"%e)#"Operation failed!")					
