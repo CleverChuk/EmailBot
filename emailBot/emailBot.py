@@ -182,8 +182,8 @@ class MailBot(BotInterface):
 		for email in email_object:
 			for box in mail_box:
 				try:
-
-					clients[index].select(mailbox = box, readonly = False)
+					client = clients[index]
+					client.select(mailbox = box, readonly = False)
 					trash, IDs = client.search(None, 'NOT SEEN')	
 					trash, ID = client.search(None, 'SEEN')
 					IDs = IDs + ID
