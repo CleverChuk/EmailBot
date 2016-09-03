@@ -6,6 +6,12 @@ To use the program:
 
 > Download emailBot folder zip
 
-> Unzip  the folder and run driver.py as command (for Linux users)
+> Unzip  the folder 
+  
+> Open driver.py in your fav editor
+  
+> Add emails to email list
+  
+> Then run driver.py as command (for Linux users)
 
 > C:\user\\...\emailBot> python driver.py (windows) assuming python3 is in your PATH
