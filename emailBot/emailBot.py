@@ -186,6 +186,7 @@ class MailBot(BotInterface):
 			for box in mail_box:
 				try:
 					client = clients[index]
+<<<<<<< HEAD
 					if(client != None):
 						client.select(mailbox = box, readonly = False)
 						trash, IDs = client.search(None, 'NOT SEEN')	
@@ -202,6 +203,22 @@ class MailBot(BotInterface):
 
 							client.store(IDs,'+FLAGS','(\Deleted)')
 							client.expunge()		
+=======
+					client.select(mailbox = box, readonly = False)
+					trash, IDs = client.search(None, 'NOT SEEN')	
+					trash, ID = client.search(None, 'SEEN')
+					IDs = IDs + ID
+
+					IDs = IDs[0] + IDs[1]
+					# print(type(IDs))		
+					IDs = IDs.decode('utf-8')
+					if(IDs != '' and IDs != ' '):
+						IDs = ','.join(IDs.split(' '))
+						IDs = IDs.strip(',')
+
+						client.store(IDs,'+FLAGS','(\Deleted)')
+						client.expunge()		
+>>>>>>> 3e3be6e138ed8d3f98754b15f27407a7d26cfcc7
 
 				except IMAP4.error as e:				
 					print("from empty_spam(): %s"%e)#"Operation failed!")					
