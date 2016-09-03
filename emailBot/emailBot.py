@@ -126,19 +126,21 @@ class MailBot(BotInterface):
 		if(len(email_object) == 1  and len(spam_object) == 1):	
 			
 			try:				
-				clients[index].select(mailbox = label, readonly = False)					
-				junk,[IDs] = clients[index].search(None, '(FROM "flag")'.replace('flag',spam.get_id()))
-				# print(type(IDs))
-				IDs = IDs.decode('utf-8')
+				if(clients[index] != None):
+					clients[index].select(mailbox = label, readonly = False)
+					junk,[IDs] = clients[index].search(None, '(FROM "flag")'.replace('flag',spam.get_id()))
 
-				if(IDs != '' and IDs != ' '):
-					IDs = ','.join(IDs.split(' '))
-					IDs = IDs.strip(',')					
+					# print(type(IDs))
+					IDs = IDs.decode('utf-8')
+
+					if(IDs != '' and IDs != ' '):
+						IDs = ','.join(IDs.split(' '))
+						IDs = IDs.strip(',')					
 					
-					# print((IDs))
-					clients[index].store(IDs,'+FLAGS','(\Deleted)')
-					clients[index].expunge()
-				self.done = True
+						# print((IDs))
+						clients[index].store(IDs,'+FLAGS','(\Deleted)')
+						clients[index].expunge()
+					self.done = True
 			except IMAP4.error as e:				
 				print("from work(): %s" % e)					
 
@@ -147,19 +149,20 @@ class MailBot(BotInterface):
 		else:
 			for spam in spam_object:
 				for email in email_object:
-					try:						
-						junk, data = clients[index].select(mailbox = label, readonly = False)						
-						junk,[IDs] = clients[index].search(None, '(FROM "flag")'.replace('flag',spam.get_id()))
+					try:	
+						if(clients[index] != None):
+							junk, data = clients[index].select(mailbox = label, readonly = False)
+							junk,[IDs] = clients[index].search(None, '(FROM "flag")'.replace('flag',spam.get_id()))
 						
-						# print(type(IDs))
-						IDs = IDs.decode('utf-8')
+							# print(type(IDs))
+							IDs = IDs.decode('utf-8')
 
-						if(IDs != '' and IDs != ' '):
-							IDs = ','.join(IDs.split(' '))						
-							IDs = IDs.strip(',')
+							if(IDs != '' and IDs != ' '):
+								IDs = ','.join(IDs.split(' '))
+								IDs = IDs.strip(',')
 						
-							clients[index].store(IDs,'+FLAGS','(\Deleted)')
-							clients[index].expunge()		
+								clients[index].store(IDs,'+FLAGS','(\Deleted)')
+								clients[index].expunge()		
 				
 					except IMAP4.error as e:				
 						print("from work(): %s" % e)					
@@ -182,21 +185,23 @@ class MailBot(BotInterface):
 		for email in email_object:
 			for box in mail_box:
 				try:
+					client = clients[index]
+					if(client != None):
+						client.select(mailbox = box, readonly = False)
+						trash, IDs = client.search(None, 'NOT SEEN')	
+						trash, ID = client.search(None, 'SEEN')
+						IDs = IDs + ID
 
-					clients[index].select(mailbox = box, readonly = False)
-					trash, IDs = client.search(None, 'NOT SEEN')	
-					trash, ID = client.search(None, 'SEEN')
-					IDs = IDs + ID
+						IDs = IDs[0] + IDs[1]
+						# print(type(IDs))		
+						IDs = IDs.decode('utf-8')
+						
+						if(IDs != '' and IDs != ' '):
+							IDs = ','.join(IDs.split(' '))
+							IDs = IDs.strip(',')
 
-					IDs = IDs[0] + IDs[1]
-					# print(type(IDs))		
-					IDs = IDs.decode('utf-8')
-					if(IDs != '' and IDs != ' '):
-						IDs = ','.join(IDs.split(' '))
-						IDs = IDs.strip(',')
-
-						clients[index].store(IDs,'+FLAGS','(\Deleted)')
-						clients[index].expunge()		
+							client.store(IDs,'+FLAGS','(\Deleted)')
+							client.expunge()		
 
 				except IMAP4.error as e:				
 					print("from empty_spam(): %s"%e)#"Operation failed!")					
