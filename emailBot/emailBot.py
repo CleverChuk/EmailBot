@@ -123,56 +123,32 @@ class MailBot(BotInterface):
 		label = label if(label != None) else self.folder
 		email_object = self.__email_list; spam_object = self.spam_list; clients = self.__imap_client_list
 		
-		if(len(email_object) == 1  and len(spam_object) == 1):	
-			
-			try:				
-				if(clients[index] != None):
-					clients[index].select(mailbox = label, readonly = False)
-					junk,[IDs] = clients[index].search(None, '(FROM "flag")'.replace('flag',spam.get_id()))
-
-					# print(type(IDs))
-					IDs = IDs.decode('utf-8')
-
-					if(IDs != '' and IDs != ' '):
-						IDs = ','.join(IDs.split(' '))
-						IDs = IDs.strip(',')					
+		for spam in spam_object:
+			for email in email_object:
+				try:	
+					if(clients[index] != None):
+						junk, data = clients[index].select(mailbox = label, readonly = False)
+						junk,[IDs] = clients[index].search(None, '(FROM "flag")'.replace('flag',spam.get_id()))
 					
-						# print((IDs))
-						clients[index].store(IDs,'+FLAGS','(\Deleted)')
-						clients[index].expunge()
-					self.done = True
-			except IMAP4.error as e:				
-				print("from work(): %s" % e)					
+						# print(type(IDs))
+						IDs = IDs.decode('utf-8')
 
-			except Exception as e:
-				print("from work(): %s" % e)
-		else:
-			for spam in spam_object:
-				for email in email_object:
-					try:	
-						if(clients[index] != None):
-							junk, data = clients[index].select(mailbox = label, readonly = False)
-							junk,[IDs] = clients[index].search(None, '(FROM "flag")'.replace('flag',spam.get_id()))
-						
-							# print(type(IDs))
-							IDs = IDs.decode('utf-8')
+						if(IDs != '' and IDs != ' '):
+							IDs = ','.join(IDs.split(' '))
+							IDs = IDs.strip(',')
+					
+							clients[index].store(IDs,'+FLAGS','(\Deleted)')
+							clients[index].expunge()		
+			
+				except IMAP4.error as e:				
+					print("from work(): %s" % e)					
 
-							if(IDs != '' and IDs != ' '):
-								IDs = ','.join(IDs.split(' '))
-								IDs = IDs.strip(',')
-						
-								clients[index].store(IDs,'+FLAGS','(\Deleted)')
-								clients[index].expunge()		
-				
-					except IMAP4.error as e:				
-						print("from work(): %s" % e)					
-
-					except Exception as e:
-						print("from work(): %s" % e)
-					finally:
-						index += 1
-				index = 0
-			self.done = True
+				except Exception as e:
+					print("from work(): %s" % e)
+				finally:
+					index += 1
+			index = 0
+		self.done = True
 
 	def empty_spam(self):
 		"""Empties folders in mail_box
