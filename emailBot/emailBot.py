@@ -52,6 +52,15 @@ class MailBot(BotInterface):
 	def remove_spam(self,spam_object):
 		self.spam_list.pop(self.spam_list.index(spam_object))
 
+	def update_pass(self,obj):
+		try:
+			print("Enter new password:") 
+			obj.set_pass()
+		except:
+			print("Unable to update password")
+
+                
+
 
 	def __parse(self, email_list = None):
 		"""parse email to assign the right
@@ -84,6 +93,7 @@ class MailBot(BotInterface):
 		"""
 		self.__parse()
 		self.__imap_client_list.clear()
+
 		for key,host in self.__imap_server_dict.items():			
 			try:				
 				print("connecting....")
@@ -99,21 +109,22 @@ class MailBot(BotInterface):
 	def login(self, email_object = None, clients = None):
 		"""Logs into server
 		"""
-		self.__spawn_imap_client();
-
+		self.__spawn_imap_client()
 		index = 0
 		email_object = self.__email_list; clients = self.__imap_client_list
 
-		if(len(email_object) == 1):				
+		
+		for email in email_object:
 			if(clients[index] != None):
-				clients[index].login(email_object[index].get_email_addr(), email_object[index].get_pass())				
-				self.login_flag = True
-		else:
-			for email in email_object:
-				if(clients[index] != None):
+				try:
 					clients[index].login(email.get_email_addr(), email.get_pass())
-					self.login_flag = True
-				index += 1
+				except:
+					self.update_pass(email)
+					clients[index].login(email.get_email_addr(), email.get_pass())
+			index += 1
+		self.login_flag = True
+		
+                
 
 
 	def work(self, email_object = None, spam_object = None, clients = None, label = None):
