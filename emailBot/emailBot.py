@@ -118,11 +118,11 @@ class MailBot(BotInterface):
 			if(clients[index] != None):
 				try:
 					clients[index].login(email.get_email_addr(), email.get_pass())
+					self.login_flag = True
 				except:
 					self.update_pass(email)
 					clients[index].login(email.get_email_addr(), email.get_pass())
 			index += 1
-		self.login_flag = True
 		
                 
 
