@@ -2,7 +2,7 @@ rem Author: CleverChuk
 rem for Windows OS
 rem User script for running EmailBot
 @echo off
-rem Batch program for running EmailBot driver.py
+rem Bat program for running EmailBot driver.py
 @echo on
 @echo "Starting MailBot"
 @echo off
