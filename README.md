@@ -1,5 +1,6 @@
 # EmailBot
 My Idea of a spam catcher
+
 To use the program:
 ------------------
 > You will need python 3.x
